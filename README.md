@@ -58,7 +58,7 @@ Safety-Helmet-Detection/
 │
 ├── uploaded_videos/
 │
-└── screenshots/
+└── results/
 ```
 
 ---
