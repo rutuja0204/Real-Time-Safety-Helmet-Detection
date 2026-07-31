@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual Environment
+venv/
+env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Cache
+.cache/
+
+# Uploaded Videos
+uploaded_videos/*.mp4
+uploaded_videos/*.avi
+uploaded_videos/*.mov
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Industrial Safety Helmet Detection Dashboard — real-time YOLO-powered helmet compliance monitoring." />
+  <title>Industrial Safety Helmet Detection</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <noscript>
+    <p style="padding:20px;font-family:sans-serif;color:#c00;">
+      JavaScript is required to run this dashboard. Please enable it in your browser settings.
+    </p>
+  </noscript>
+
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Sidebar navigation">
+      <div class="brand-card">
+        <div class="brand-icon" aria-hidden="true">HS</div>
+        <div>
+          <h1>Helmet Safety</h1>
+          <p>Detection Dashboard</p>
+        </div>
+      </div>
+
+      <nav class="nav-links" aria-label="Page sections">
+        <a href="#" class="active">Dashboard</a>
+        <a href="#live-monitor">Live Monitor</a>
+        <a href="#recent-events">Recent Events</a>
+        <a href="#analytics">Analytics</a>
+        <a href="#system-panel">System Panel</a>
+      </nav>
+
+      <div class="side-widget">
+        <h3>System Health</h3>
+        <div class="widget-row">
+          <span>Camera</span>
+          <span class="pill danger" id="cameraStatus" aria-live="polite">Stopped</span>
+        </div>
+        <div class="widget-row">
+          <span>Model Status</span>
+          <span class="pill danger" id="modelStatus" aria-live="polite">Missing</span>
+        </div>
+        <div class="widget-row">
+          <span>Detection Mode</span>
+          <span class="pill info">Helmet / No-Helmet</span>
+        </div>
+      </div>
+
+      <div class="side-widget">
+        <h3>Project Summary</h3>
+        <div class="mini-stat">
+          <span>Dataset Size</span>
+          <strong>~5000 Images</strong>
+        </div>
+        <div class="mini-stat">
+          <span>Epochs</span>
+          <strong>30</strong>
+        </div>
+        <div class="mini-stat">
+          <span>Accuracy</span>
+          <strong>80%</strong>
+        </div>
+      </div>
+
+      <div class="side-widget" id="system-panel">
+        <h3>Quick Actions</h3>
+        <button class="side-btn"           id="startCameraBtn"    aria-label="Start webcam detection">Start Detection</button>
+        <button class="side-btn secondary" id="stopCameraBtn"     aria-label="Stop webcam detection">Stop Detection</button>
+        <button class="side-btn ghost"     id="demoDetectionsBtn" aria-label="Refresh backend status">Refresh Backend</button>
+        <!-- NEW: reset counters without stopping the camera -->
+        <button class="side-btn ghost"     id="resetStatsBtn"     aria-label="Reset detection counters">Reset Stats</button>
+      </div>
+    </aside>
+
+    <main class="main-content" aria-label="Main dashboard content">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Image Processing &amp; Machine Vision Project</p>
+          <h2>Industrial Safety Helmet Detection</h2>
+          <p class="subtitle">A professional frontend dashboard connected to your trained YOLO model for real-time helmet compliance monitoring.</p>
+        </div>
+        <div class="topbar-right">
+          <div class="live-chip" id="connectionBadge" aria-live="polite">
+            Backend Ready
+          </div>
+          <div class="time-box">
+            <span>System Time</span>
+            <strong id="liveTime" aria-live="off">--:--:--</strong>
+          </div>
+        </div>
+      </header>
+
+      <section class="hero-grid" aria-label="Detection statistics">
+        <div class="metric-card soft-blue">
+          <span>Total Detections</span>
+          <h3 id="totalDetections" aria-live="polite">0</h3>
+          <p>Live count captured from the running model</p>
+        </div>
+        <div class="metric-card soft-green">
+          <span>Helmet Detected</span>
+          <h3 id="helmetCount" aria-live="polite">0</h3>
+          <p>Workers following safety compliance</p>
+        </div>
+        <div class="metric-card soft-coral">
+          <span>No Helmet</span>
+          <h3 id="noHelmetCount" aria-live="polite">0</h3>
+          <p>Needs immediate safety attention</p>
+        </div>
+        <div class="metric-card soft-purple">
+          <span>Compliance Score</span>
+          <h3 id="complianceScore" aria-live="polite">0%</h3>
+          <p>Updated from backend inference results</p>
+        </div>
+      </section>
+
+      <section class="content-grid">
+        <div class="panel live-panel" id="live-monitor">
+          <div class="panel-head">
+            <div>
+              <h3>Live Camera Monitoring</h3>
+              <p>Flask + YOLO live stream using your laptop webcam and trained <code>best.pt</code> model.</p>
+            </div>
+            <div class="panel-actions">
+              <label for="imageUpload" class="upload-btn">Upload Image</label>
+              <input type="file" id="imageUpload" accept="image/jpeg,image/png,image/bmp,image/webp" hidden aria-label="Upload an image for detection">
+              <label for="videoUpload" class="upload-btn video-upload-btn">Upload Video🎬</label>
+              <input type="file" id="videoUpload" accept="video/mp4,video/avi,video/quicktime,video/x-matroska,video/x-ms-wmv,video/x-m4v" hidden aria-label="Upload a video file for detection">
+            </div>
+          </div>
+
+          <div class="camera-frame" role="img" aria-label="Live detection feed">
+            <img id="streamImage"  src="/video_feed" alt="Live YOLO detection stream" />
+            <img id="previewImage" alt="Uploaded image with detection annotations" />
+            <div class="camera-overlay" aria-hidden="true">
+              <div class="overlay-badge">AI Safety View</div>
+              <div class="overlay-badge secondary-badge" id="cameraModeLabel">Detection Idle</div>
+            </div>
+          </div>
+
+          <div class="control-row">
+            <button class="primary-btn"   id="startCameraBtnMain" aria-label="Start webcam detection">Start Webcam Detection</button>
+            <button class="secondary-btn" id="stopCameraBtnMain"  aria-label="Stop webcam">Stop Webcam</button>
+            <button class="ghost-btn"     id="simulateBtn"        aria-label="Refresh statistics">Refresh Stats</button>
+          </div>
+          <p class="system-message" id="systemMessage" aria-live="polite">
+            Put your trained model file inside <strong>models/best.pt</strong>, then run <strong>python app.py</strong>.
+          </p>
+        </div>
+
+        <div class="panel analytics-panel" id="analytics">
+          <div class="panel-head">
+            <div>
+              <h3>Safety Analytics</h3>
+              <p>Simple visual summary for your project presentation.</p>
+            </div>
+          </div>
+
+          <div class="analytics-box">
+            <div class="bar-group">
+              <div class="bar-label-row"><span>Helmet</span><strong id="helmetPercent">0%</strong></div>
+              <div class="bar-track" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="Helmet compliance percentage">
+                <div class="bar-fill blue-fill" id="helmetBar"></div>
+              </div>
+            </div>
+            <div class="bar-group">
+              <div class="bar-label-row"><span>No Helmet</span><strong id="noHelmetPercent">0%</strong></div>
+              <div class="bar-track" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="No-helmet violation percentage">
+                <div class="bar-fill coral-fill" id="noHelmetBar"></div>
+              </div>
+            </div>
+            <div class="bar-group">
+              <div class="bar-label-row"><span>Model Link</span><strong>best.pt</strong></div>
+              <div class="bar-track"><div class="bar-fill green-fill" style="width: 100%"></div></div>
+            </div>
+          </div>
+
+          <div class="status-card-grid">
+            <div class="status-card">
+              <span>Backend</span>
+              <strong>Flask Streaming Server</strong>
+            </div>
+            <div class="status-card">
+              <span>Inference</span>
+              <strong>YOLO Real-Time Detection</strong>
+            </div>
+            <div class="status-card">
+              <span>Frontend Theme</span>
+              <strong>Light Professional UI</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="lower-grid">
+        <div class="panel table-panel" id="recent-events">
+          <div class="panel-head">
+            <div>
+              <h3>Recent Detection Events</h3>
+              <p>Real detections from the backend are shown here with time and confidence.</p>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table aria-label="Recent detection events">
+              <thead>
+                <tr>
+                  <th scope="col">Time</th>
+                  <th scope="col">Zone</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Confidence</th>
+                </tr>
+              </thead>
+              <tbody id="eventTableBody">
+                <tr>
+                  <td colspan="4" class="empty-row">No detections yet. Start the webcam or upload an image.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel insight-panel">
+          <div class="panel-head">
+            <div>
+              <h3>Project Idea Approach</h3>
+              <p>A professional way to present your helmet detection system.</p>
+            </div>
+          </div>
+
+          <div class="idea-list">
+            <div class="idea-item">
+              <div class="idea-bullet" aria-hidden="true"></div>
+              <div>
+                <h4>Real-Time Monitoring</h4>
+                <p>The website displays the webcam feed processed by your trained YOLO model in a clean industrial dashboard.</p>
+              </div>
+            </div>
+            <div class="idea-item">
+              <div class="idea-bullet" aria-hidden="true"></div>
+              <div>
+                <h4>Compliance Widgets</h4>
+                <p>Automatic counters show total detections, helmet usage, no-helmet alerts, and compliance percentage.</p>
+              </div>
+            </div>
+            <div class="idea-item">
+              <div class="idea-bullet" aria-hidden="true"></div>
+              <div>
+                <h4>Image + Webcam Support</h4>
+                <p>You can present both live webcam detection and uploaded image detection from the same interface.</p>
+              </div>
+            </div>
+            <div class="idea-item">
+              <div class="idea-bullet" aria-hidden="true"></div>
+              <div>
+                <h4>Future Scope</h4>
+                <p>Add snapshot saving, database logs, worker ID tracking, zone-wise alerts, and siren/email notifications.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
